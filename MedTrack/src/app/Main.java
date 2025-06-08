@@ -21,7 +21,7 @@ public class Main {
         facade.loadUsersFromFiles();
 
         // ✅ CS622 Part 2.3 – Start autosave service on boot
-        RegistryAutosaveService autosaveService = new RegistryAutosaveService(facade.getUserRegistry(), 25); // every 30 seconds
+        RegistryAutosaveService autosaveService = new RegistryAutosaveService(facade.getUserRegistry(), 40); // every 30 seconds
         autosaveService.start();
         System.out.println("💡 Autosave is enabled. Your data will be saved automatically in the background.");
 
