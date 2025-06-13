@@ -1,12 +1,9 @@
 package service;
 
 /**
- * ✅ CS622 Release 2 – Modified
- * This class was updated to support periodic autosaving of patient data.
- * Key changes:
- * - Introduced a 'dirty' flag to track when patients are added
- * - Added methods to expose that flag to the autosave service
- * - Simplified autosave to save patients only (doctors are admin-controlled and static)
+ * ✅ CS622 Release – Updated for SQLite integration
+ * - Loads patients and doctors from SQLite instead of files
+ * - Keeps autosave mechanism for patients using .ser for backup/recovery
  */
 
 import model.Doctor;
@@ -14,8 +11,10 @@ import model.Patient;
 import model.User;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +26,7 @@ public class UserRegistry {
         PATIENT, DOCTOR
     }
 
-    // ✅ Added in Part 2.3 – Tracks when patient data has changed
+    // ✅ Tracks when patient data has changed for autosave
     private boolean dirty = false;
 
     private static final String PATIENTS_FILE = "data/patients.ser";
@@ -38,12 +37,11 @@ public class UserRegistry {
 
     public void registerPatient(Patient patient) {
         patients.addUser(patient);
-        dirty = true; // ✅ Flag set when new patient is added
+        dirty = true;
     }
 
     public void registerDoctor(Doctor doctor) {
         doctors.addUser(doctor);
-        // ✅ Doctors are admin-only and do not trigger autosave
     }
 
     public Optional<User> findUserById(String id) {
@@ -59,6 +57,51 @@ public class UserRegistry {
         return allUsers;
     }
 
+    // ✅ Load users from SQLite
+    public void loadUsersFromDatabase() {
+        loadPatientsFromDatabase();
+        loadDoctorsFromDatabase();
+    }
+
+    private void loadPatientsFromDatabase() {
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM patients");
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String id = rs.getString("id");
+                String name = rs.getString("name");
+                // Default provider to "Unknown" for now
+                registerPatient(new Patient(id, name, "Unknown"));
+            }
+
+            System.out.println("✅ Loaded patients from SQLite");
+
+        } catch (SQLException e) {
+            System.err.println("❌ Failed to load patients from DB: " + e.getMessage());
+        }
+    }
+
+    private void loadDoctorsFromDatabase() {
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT id, name, specialty FROM doctors");
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String id = rs.getString("id");
+                String name = rs.getString("name");
+                String specialty = rs.getString("specialty");
+                registerDoctor(new Doctor(id, name, specialty));
+            }
+
+            System.out.println("✅ Loaded doctors from SQLite");
+
+        } catch (SQLException e) {
+            System.err.println("❌ Failed to load doctors from DB: " + e.getMessage());
+        }
+    }
+
+    // 🔁 Legacy file-loading logic (CSV) – optional, can remove if no longer used
     public <T extends User> void loadUsersFromFile(
             String filename,
             CsvParser<T> parser,
@@ -66,40 +109,12 @@ public class UserRegistry {
     ) {
         CsvLoader<T> loader = new CsvLoader<>();
         try {
-            List<String> lines = Files.readAllLines(Paths.get(filename));
-            for (String line : lines) {
-                try {
-                    T user = parser.parse(line);
-                    registerFunction.accept(user);
-                } catch (IllegalArgumentException ex) {
-                    System.err.println("⚠️ Skipped malformed line: " + line + " → " + ex.getMessage());
-                }
-            }
+            List<T> loaded = loader.load(filename, parser);
+            loaded.forEach(registerFunction);
         } catch (IOException e) {
             System.err.println("❌ Could not load users from file: " + e.getMessage());
-        }
-    }
-
-    public void loadUsersFromCsv(String filename, UserType type) {
-        switch (type) {
-            case PATIENT -> loadUsersFromFile(
-                    filename,
-                    line -> {
-                        String[] parts = line.split("\\|");
-                        if (parts.length < 3) throw new IllegalArgumentException("Bad patient line: " + line);
-                        return new Patient(parts[0].trim(), parts[1].trim(), parts[2].trim());
-                    },
-                    this::registerPatient
-            );
-            case DOCTOR -> loadUsersFromFile(
-                    filename,
-                    line -> {
-                        String[] parts = line.split("\\|");
-                        if (parts.length < 3) throw new IllegalArgumentException("Bad doctor line: " + line);
-                        return new Doctor(parts[0].trim(), parts[1].trim(), parts[2].trim());
-                    },
-                    this::registerDoctor
-            );
+        } catch (IllegalArgumentException ex) {
+            System.err.println("⚠️ Skipped malformed line: " + ex.getMessage());
         }
     }
 
@@ -148,13 +163,11 @@ public class UserRegistry {
             System.err.println("❌ Failed to load doctors: " + e.getMessage());
         }
     }
-    
-    // ✅ Part 2.3 – Method used by autosave service (only saves patients)
+
     public void saveAllUsersToBinaryFile() {
         savePatientsToBinaryFile();
     }
 
-    // ✅ Part 2.3 – Used to determine if autosave should run
     public boolean isDirty() {
         return dirty;
     }

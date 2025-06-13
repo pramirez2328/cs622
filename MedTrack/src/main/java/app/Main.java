@@ -1,10 +1,9 @@
 package app;
 
 import model.*;
+import service.DatabaseInitializer;
 import service.FacadeService;
 import service.InvalidInputException;
-
-// ✅ CS622 Part 2.3 – Added autosave service import
 import service.RegistryAutosaveService;
 
 import java.time.LocalDate;
@@ -15,13 +14,16 @@ import java.util.stream.Stream;
 
 public class Main {
     public static void main(String[] args) {
+        DatabaseInitializer.initialize();
+
         FacadeService facade = FacadeService.getInstance();
         Scanner scanner = new Scanner(System.in);
 
-        facade.loadUsersFromFiles();
+        // ✅ Load users from SQLite instead of file
+        facade.loadUsersFromDatabase();
 
         // ✅ CS622 Part 2.3 – Start autosave service on boot
-        RegistryAutosaveService autosaveService = new RegistryAutosaveService(facade.getUserRegistry(), 40); // every 30 seconds
+        RegistryAutosaveService autosaveService = new RegistryAutosaveService(facade.getUserRegistry(), 40); // every 40 seconds
         autosaveService.start();
         System.out.println("💡 Autosave is enabled. Your data will be saved automatically in the background.");
 
@@ -31,6 +33,7 @@ public class Main {
         boolean running = true;
         while (running) {
             System.out.println("\n==== MEDTRACK MENU ====");
+            System.out.println("0. Clean db and reload from CSV files (WARNING: this will delete all existing data!");
             System.out.println("1. Register as new patient");
             System.out.println("2. Book an appointment");
             System.out.println("3. View my appointments");
@@ -39,6 +42,17 @@ public class Main {
             String choice = scanner.nextLine().trim();
 
             switch (choice) {
+                case "0":
+                    System.out.println("⚠️ This will reload patients and doctors from CSV files.");
+                    System.out.print("Are you sure? (yes/no): ");
+                    String confirm = scanner.nextLine().trim().toLowerCase();
+                    if (confirm.equals("yes")) {
+                        DatabaseInitializer.seedFromCsvForce();
+                    } else {
+                        System.out.println("❌ Operation cancelled.");
+                    }
+                    break;
+
                 case "1":
                     System.out.print("Enter your name: ");
                     String name = scanner.nextLine().trim();
@@ -100,7 +114,7 @@ public class Main {
                     }
 
                     Patient viewPatient = (Patient) viewUser;
-                    facade.loadAppointmentsFromFile(viewPatient);
+                    facade.loadAppointmentsFromFile(viewPatient); // ❗ Still using file-based appointments
                     List<Appointment> appointments = viewPatient.getAppointments();
 
                     if (appointments.isEmpty()) {
@@ -143,7 +157,6 @@ public class Main {
                     break;
 
                 case "4":
-                    // ✅ CS622 Part 2.3 – Log autosave shutdown before exiting
                     System.out.println("💾 Final autosave and shutdown in progress...");
                     System.out.println("👋 Exiting MEDTRACK. Goodbye!");
                     System.exit(0);
