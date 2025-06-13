@@ -4,9 +4,7 @@ import model.Appointment;
 import model.Doctor;
 import model.Patient;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -14,24 +12,22 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * ✅ CS622 Release – Modified
- * This class was updated to:
- * - Support concurrent appointment booking using ReentrantLock (Part 2.1)
- * - Save appointments asynchronously using a background thread and queue (Part 2.2)
+ * ✅ CS622 Final Release – Updated for SQLite
+ * - Replaces all file-based appointment saving/loading with SQLite
+ * - Supports thread-safe appointment booking with ReentrantLock
+ * - Uses a background worker thread to save appointments asynchronously
+ * - Appointments can be loaded from the database into a Patient’s record
  */
 public class AppointmentManager {
-    private static final String DATA_DIR = "data/";
-    private static final String APPOINTMENT_BINARY_FILE = DATA_DIR + "appointments.ser";
 
-    // ✅ Part 2.1 – Lock to prevent race conditions in concurrent bookings
+    // ✅ Lock to prevent race conditions in concurrent bookings
     private final ReentrantLock lock = new ReentrantLock();
 
-    // ✅ Part 2.2 – Background thread and queue-based saver for async file writing
+    // ✅ Background thread for async DB saving
     private final AppointmentSaverWorker saverWorker = new AppointmentSaverWorker();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public AppointmentManager() {
-        // ✅ Part 2.2 – Start the background saver thread
         executor.submit(saverWorker);
     }
 
@@ -40,7 +36,6 @@ public class AppointmentManager {
     }
 
     public Appointment bookAppointment(Patient patient, Doctor doctor, String date, String time) {
-        // ✅ Part 2.1 – Lock acquired to ensure only one thread can book at a time
         lock.lock();
         try {
             if (patient == null) {
@@ -68,79 +63,44 @@ public class AppointmentManager {
             doctor.addAppointment(appointment);
             patient.addAppointment(appointment);
 
-            // ✅ Part 2.2 – Save appointment asynchronously through a background worker
             saverWorker.saveLater(appointment, patient.getName(), doctor.getName());
 
             return appointment;
         } finally {
-            lock.unlock(); // ✅ Part 2.1 – Release lock
+            lock.unlock();
         }
     }
 
     public void shutdown() {
-        // ✅ Part 2.2 – Stop background worker and shutdown executor service
         saverWorker.stop();
         executor.shutdown();
     }
 
-    public void loadAppointmentsFromFile(Patient patient) {
-        boolean warned = false;
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(DATA_DIR + "appointments.txt"));
-            for (String line : lines) {
-                String[] tokens = line.split("\\|");
-                if (tokens.length < 5) {
-                    if (!warned) {
-                        System.err.println("⚠️ Skipped malformed line:");
-                        warned = true;
-                    }
-                    continue;
-                }
+    // ✅ Loads all appointments for the given patient from the database
+    public void loadAppointmentsFromDatabase(Patient patient) {
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("""
+                         SELECT id, doctor_id, date, time
+                         FROM appointments
+                         WHERE patient_id = ?
+                     """)) {
 
-                String fullCode = tokens[0].trim();
-                String[] parts = fullCode.split("-");
-                if (parts.length < 5) continue;
+            stmt.setString(1, patient.getId());
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String doctorId = rs.getString("doctor_id");
+                    String date = rs.getString("date");
+                    String time = rs.getString("time");
 
-                String patientId = parts[1].trim();
-                String doctorId = parts[2].trim();
-                String dateRaw = parts[3].trim();
-                String timeRaw = parts[4].trim();
-
-                String formattedDate = dateRaw.substring(0, 4) + "-" + dateRaw.substring(4, 6) + "-" + dateRaw.substring(6);
-                String formattedTime = timeRaw.substring(0, 2) + ":" + timeRaw.substring(2);
-
-                if (patient.getId().equals(patientId)) {
-                    Appointment a = new Appointment(patientId, doctorId, formattedDate, formattedTime);
+                    Appointment a = new Appointment(patient.getId(), doctorId, date, time);
                     if (!patient.getAppointments().contains(a)) {
                         patient.addAppointment(a);
                     }
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Error loading appointments: " + e.getMessage());
-        }
-    }
 
-    public void saveAppointmentsToBinaryFile(List<Appointment> appointments) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(APPOINTMENT_BINARY_FILE))) {
-            oos.writeObject(appointments);
-            System.out.println("✅ Appointments saved to binary file.");
-        } catch (IOException e) {
-            System.err.println("❌ Failed to save appointments: " + e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("❌ Failed to load appointments from DB: " + e.getMessage());
         }
-    }
-
-    public List<Appointment> loadAppointmentsFromBinaryFile() {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(APPOINTMENT_BINARY_FILE))) {
-            Object obj = ois.readObject();
-            if (obj instanceof List<?>) {
-                return (List<Appointment>) obj;
-            } else {
-                System.err.println("❌ File does not contain a valid List<Appointment>");
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("❌ Failed to load appointments: " + e.getMessage());
-        }
-        return new ArrayList<>();
     }
 }

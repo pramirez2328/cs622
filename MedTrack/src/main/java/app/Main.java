@@ -22,6 +22,7 @@ public class Main {
         // ✅ Load users from SQLite instead of file
         facade.loadUsersFromDatabase();
 
+
         // ✅ CS622 Part 2.3 – Start autosave service on boot
         RegistryAutosaveService autosaveService = new RegistryAutosaveService(facade.getUserRegistry(), 40); // every 40 seconds
         autosaveService.start();
@@ -33,7 +34,7 @@ public class Main {
         boolean running = true;
         while (running) {
             System.out.println("\n==== MEDTRACK MENU ====");
-            System.out.println("0. Clean db and reload from CSV files (WARNING: this will delete all existing data!");
+            System.out.println("0. Clean db and reload from CSV files (WARNING: this will delete all existing data!)");
             System.out.println("1. Register as new patient");
             System.out.println("2. Book an appointment");
             System.out.println("3. View my appointments");
@@ -48,6 +49,9 @@ public class Main {
                     String confirm = scanner.nextLine().trim().toLowerCase();
                     if (confirm.equals("yes")) {
                         DatabaseInitializer.seedFromCsvForce();
+                        DatabaseInitializer.seedAppointmentsFromTxt("data/appointments.txt");
+                        System.out.println("📦 Database reseeded from CSV files (force mode).");
+
                     } else {
                         System.out.println("❌ Operation cancelled.");
                     }
@@ -114,7 +118,7 @@ public class Main {
                     }
 
                     Patient viewPatient = (Patient) viewUser;
-                    facade.loadAppointmentsFromFile(viewPatient); // ❗ Still using file-based appointments
+                    facade.loadAppointmentsForPatient(viewPatient);
                     List<Appointment> appointments = viewPatient.getAppointments();
 
                     if (appointments.isEmpty()) {

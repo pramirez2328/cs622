@@ -83,8 +83,8 @@ public class FacadeService {
         return appointmentManager.bookAppointment(patient, doctor, date, time);
     }
 
-    public void loadAppointmentsFromFile(Patient patient) {
-        appointmentManager.loadAppointmentsFromFile(patient);
+    public void loadAppointmentsForPatient(Patient patient) {
+        appointmentManager.loadAppointmentsFromDatabase(patient);
     }
 
     public void loadUsersFromDatabase() {
