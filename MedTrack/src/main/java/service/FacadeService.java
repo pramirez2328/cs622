@@ -15,6 +15,8 @@ public class FacadeService {
     private static final FacadeService instance = new FacadeService();
     private final UserRegistry userRegistry;
     private final AppointmentManager appointmentManager;
+
+    // ✅ Added: Used to skip DB writes when running in test mode
     private boolean isTestMode = false;
 
     private FacadeService() {
@@ -26,6 +28,7 @@ public class FacadeService {
         return instance;
     }
 
+    // ✅ Added: Allows unit tests to prevent writing to SQLite
     public void enableTestMode() {
         this.isTestMode = true;
     }
@@ -33,23 +36,27 @@ public class FacadeService {
     public void registerUser(User user) {
         if (user instanceof Patient patient) {
             userRegistry.registerPatient(patient);
+            // ✅ Added: Only insert into DB if not testing
             if (!isTestMode) {
                 insertPatientToDatabase(patient);
             }
         } else if (user instanceof Doctor doctor) {
             userRegistry.registerDoctor(doctor);
+            // ✅ Added: Only insert into DB if not testing
             if (!isTestMode) {
                 insertDoctorToDatabase(doctor);
             }
         }
     }
 
+    // ✅ Added: Writes patient data into the 'patients' table
     private void insertPatientToDatabase(Patient patient) {
-        String sql = "INSERT OR IGNORE INTO patients (id, name) VALUES (?, ?)";
+        String sql = "INSERT OR IGNORE INTO patients (id, name, insurance) VALUES (?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, patient.getId());
             pstmt.setString(2, patient.getName());
+            pstmt.setString(3, patient.getInsuranceProvider());
             pstmt.executeUpdate();
             System.out.println("✅ Patient saved to database.");
         } catch (SQLException e) {
@@ -57,6 +64,7 @@ public class FacadeService {
         }
     }
 
+    // ✅ Added: Writes doctor data into the 'doctors' table
     private void insertDoctorToDatabase(Doctor doctor) {
         String sql = "INSERT OR IGNORE INTO doctors (id, name, specialty) VALUES (?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
@@ -87,11 +95,17 @@ public class FacadeService {
         appointmentManager.loadAppointmentsFromDatabase(patient);
     }
 
+    // ✅ Added: Load all users from the database on startup
     public void loadUsersFromDatabase() {
         userRegistry.loadUsersFromDatabase();
     }
 
     public UserRegistry getUserRegistry() {
         return this.userRegistry;
+    }
+
+    // ✅ Added: Triggers shutdown of the appointment saver queue
+    public void shutdown() {
+        appointmentManager.shutdown();
     }
 }

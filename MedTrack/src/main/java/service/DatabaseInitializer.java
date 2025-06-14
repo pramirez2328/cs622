@@ -1,3 +1,7 @@
+// ✅ This class is responsible for initializing and resetting the SQLite database.
+// It creates the schema for patients, doctors, and appointments,
+// and supports seeding data from CSV and TXT files for initial boot or reset.
+
 package service;
 
 import java.io.BufferedReader;
@@ -16,8 +20,12 @@ public class DatabaseInitializer {
         try (Connection conn = DatabaseManager.getConnection();
              Statement stmt = conn.createStatement()) {
 
-            // ✅ Step 1: Drop and recreate patients table
+            // Drop tables for a clean slate
+            stmt.executeUpdate("DROP TABLE IF EXISTS appointments");
+            stmt.executeUpdate("DROP TABLE IF EXISTS doctors");
             stmt.executeUpdate("DROP TABLE IF EXISTS patients");
+
+            // Create tables
             stmt.executeUpdate("""
                         CREATE TABLE patients (
                             id TEXT PRIMARY KEY,
@@ -27,7 +35,7 @@ public class DatabaseInitializer {
                     """);
 
             stmt.executeUpdate("""
-                        CREATE TABLE IF NOT EXISTS doctors (
+                        CREATE TABLE doctors (
                             id TEXT PRIMARY KEY,
                             name TEXT NOT NULL,
                             specialty TEXT NOT NULL
@@ -35,7 +43,7 @@ public class DatabaseInitializer {
                     """);
 
             stmt.executeUpdate("""
-                        CREATE TABLE IF NOT EXISTS appointments (
+                        CREATE TABLE appointments (
                             id TEXT PRIMARY KEY,
                             patient_id TEXT,
                             doctor_id TEXT,
@@ -48,9 +56,12 @@ public class DatabaseInitializer {
 
             System.out.println("✅ Tables ensured.");
 
-            // ✅ Step 2: Seed data
+            // Seed patients and doctors
             loadPatients(conn);
             loadDoctors(conn);
+
+            // ✅ Always seed appointments when creating a new DB
+            seedAppointmentsFromTxt(APPOINTMENTS_TXT);
 
         } catch (Exception e) {
             System.err.println("❌ DB initialization error: " + e.getMessage());
@@ -113,26 +124,27 @@ public class DatabaseInitializer {
                     continue;
                 }
 
-                String fullCode = tokens[0].trim();
-                String[] parts = fullCode.split("-");
+                String id = tokens[0].trim();                   // Full confirmation code (APT-...)
+                String patientName = tokens[1].trim();          // e.g., Maria Gomez
+                String doctorName = tokens[2].trim();           // e.g., Dr. Lee
+                String date = tokens[3].trim();                 // e.g., 2025-12-12
+                String time = tokens[4].trim();                 // e.g., 12:00
+
+                // Extract patientId and doctorId from confirmation code
+                String[] parts = id.split("-");
                 if (parts.length < 5) {
-                    System.err.println("⚠️ Skipping invalid appointment code: " + fullCode);
+                    System.err.println("⚠️ Skipping invalid appointment code: " + id);
                     continue;
                 }
 
-                String patientId = parts[1].trim();
-                String doctorId = parts[2].trim();
-                String dateRaw = parts[3].trim();
-                String timeRaw = parts[4].trim();
-
-                String date = dateRaw.substring(0, 4) + "-" + dateRaw.substring(4, 6) + "-" + dateRaw.substring(6);
-                String time = timeRaw.substring(0, 2) + ":" + timeRaw.substring(2);
+                String patientId = parts[1];
+                String doctorId = parts[2];
 
                 try (PreparedStatement stmt = conn.prepareStatement("""
                             INSERT INTO appointments (id, patient_id, doctor_id, date, time)
                             VALUES (?, ?, ?, ?, ?)
                         """)) {
-                    stmt.setString(1, fullCode);
+                    stmt.setString(1, id);
                     stmt.setString(2, patientId);
                     stmt.setString(3, doctorId);
                     stmt.setString(4, date);

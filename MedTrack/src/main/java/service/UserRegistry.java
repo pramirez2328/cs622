@@ -1,11 +1,5 @@
 package service;
 
-/**
- * ✅ CS622 Release – Updated for SQLite integration
- * - Loads patients and doctors from SQLite instead of files
- * - Keeps autosave mechanism for patients using .ser for backup/recovery
- */
-
 import model.Doctor;
 import model.Patient;
 import model.User;
@@ -26,7 +20,7 @@ public class UserRegistry {
         PATIENT, DOCTOR
     }
 
-    // ✅ Tracks when patient data has changed for autosave
+    // ✅ Added: Tracks whether patient data has changed, for autosave purposes
     private boolean dirty = false;
 
     private static final String PATIENTS_FILE = "data/patients.ser";
@@ -37,7 +31,7 @@ public class UserRegistry {
 
     public void registerPatient(Patient patient) {
         patients.addUser(patient);
-        dirty = true;
+        dirty = true;  // ✅ Mark dirty when a new patient is added
     }
 
     public void registerDoctor(Doctor doctor) {
@@ -57,22 +51,23 @@ public class UserRegistry {
         return allUsers;
     }
 
-    // ✅ Load users from SQLite
+    // ✅ Added: Load all users from SQLite database
     public void loadUsersFromDatabase() {
-        loadPatientsFromDatabase();
-        loadDoctorsFromDatabase();
+        loadPatientsFromDatabase(); // ✅ Added: pulls patients from SQLite
+        loadDoctorsFromDatabase();  // ✅ Added: pulls doctors from SQLite
     }
 
+    // ✅ Added: Loads patients from 'patients' SQLite table
     private void loadPatientsFromDatabase() {
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM patients");
+             PreparedStatement stmt = conn.prepareStatement("SELECT id, name, insurance FROM patients");
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
                 String id = rs.getString("id");
                 String name = rs.getString("name");
-                // Default provider to "Unknown" for now
-                registerPatient(new Patient(id, name, "Unknown"));
+                String insurance = rs.getString("insurance");
+                registerPatient(new Patient(id, name, insurance)); // ✅ auto-sets dirty flag
             }
 
             System.out.println("✅ Loaded patients from SQLite");
@@ -82,6 +77,7 @@ public class UserRegistry {
         }
     }
 
+    // ✅ Added: Loads doctors from 'doctors' SQLite table
     private void loadDoctorsFromDatabase() {
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement("SELECT id, name, specialty FROM doctors");
@@ -101,7 +97,7 @@ public class UserRegistry {
         }
     }
 
-    // 🔁 Legacy file-loading logic (CSV) – optional, can remove if no longer used
+    // 🔁 Legacy file-loading logic (CSV) – unchanged
     public <T extends User> void loadUsersFromFile(
             String filename,
             CsvParser<T> parser,
@@ -168,10 +164,12 @@ public class UserRegistry {
         savePatientsToBinaryFile();
     }
 
+    // ✅ Added: Used by autosave service to detect when persistence is needed
     public boolean isDirty() {
         return dirty;
     }
 
+    // ✅ Added: Called after a successful save to reset the flag
     public void resetDirtyFlag() {
         dirty = false;
     }

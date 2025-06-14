@@ -5,19 +5,11 @@ import model.Doctor;
 import model.Patient;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * ✅ CS622 Final Release – Updated for SQLite
- * - Replaces all file-based appointment saving/loading with SQLite
- * - Supports thread-safe appointment booking with ReentrantLock
- * - Uses a background worker thread to save appointments asynchronously
- * - Appointments can be loaded from the database into a Patient’s record
- */
 public class AppointmentManager {
 
     // ✅ Lock to prevent race conditions in concurrent bookings
@@ -28,7 +20,7 @@ public class AppointmentManager {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public AppointmentManager() {
-        executor.submit(saverWorker);
+        executor.submit(saverWorker); // ✅ Submit the saver worker to run in background
     }
 
     public boolean checkAvailability(Doctor doctor, String date, String time) {
@@ -36,7 +28,7 @@ public class AppointmentManager {
     }
 
     public Appointment bookAppointment(Patient patient, Doctor doctor, String date, String time) {
-        lock.lock();
+        lock.lock(); // ✅ Synchronize access to prevent concurrent conflicts
         try {
             if (patient == null) {
                 throw new InvalidInputException("Patient is null", "null");
@@ -63,17 +55,28 @@ public class AppointmentManager {
             doctor.addAppointment(appointment);
             patient.addAppointment(appointment);
 
+            // ✅ Save the appointment using a background worker thread
             saverWorker.saveLater(appointment, patient.getName(), doctor.getName());
 
             return appointment;
         } finally {
-            lock.unlock();
+            lock.unlock(); // ✅ Always release the lock
         }
     }
 
     public void shutdown() {
-        saverWorker.stop();
+        saverWorker.flushAndStop(); // ✅ Send poison pill and stop saver thread
         executor.shutdown();
+
+        try {
+            // ✅ Wait for saver thread to flush queue
+            if (!executor.awaitTermination(4, TimeUnit.SECONDS)) {
+                System.err.println("⚠️ Saver thread did not terminate in time.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("❌ Shutdown interrupted");
+        }
     }
 
     // ✅ Loads all appointments for the given patient from the database
@@ -94,7 +97,7 @@ public class AppointmentManager {
 
                     Appointment a = new Appointment(patient.getId(), doctorId, date, time);
                     if (!patient.getAppointments().contains(a)) {
-                        patient.addAppointment(a);
+                        patient.addAppointment(a); // ✅ Add to in-memory list if not already present
                     }
                 }
             }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="usecases.PatientRegistrationPersistenceTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-06-14T00:28:13.125Z" hostname="Pedros-MacBook-Pro.local" time="0.484">
+  <properties/>
+  <testcase name="testPatientReloadedAfterRestart()" classname="usecases.PatientRegistrationPersistenceTest" time="0.451"/>
+  <testcase name="testPatientSavedToDatabase()" classname="usecases.PatientRegistrationPersistenceTest" time="0.031"/>
+  <system-out><![CDATA[]]>&#x1f7e2;<![CDATA[ Appointment saver started...
+✅ Tables ensured.
+✅ Patients seeded from CSV.
+✅ Doctors seeded from CSV.
+✅ Appointments seeded from TXT.
+✅ Loaded patients from SQLite
+✅ Loaded doctors from SQLite
+✅ Patient saved to database.
+✅ Loaded patients from SQLite
+✅ Loaded doctors from SQLite
+✅ Tables ensured.
+✅ Patients seeded from CSV.
+✅ Doctors seeded from CSV.
+✅ Appointments seeded from TXT.
+✅ Loaded patients from SQLite
+✅ Loaded doctors from SQLite
+✅ Patient saved to database.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

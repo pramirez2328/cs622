@@ -10,23 +10,36 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class AppointmentSaverWorker implements Runnable {
 
+    // ✅ Special marker to signal shutdown (poison pill)
+    private static final AppointmentSaveRequest POISON_PILL =
+            new AppointmentSaveRequest(null, null, null);
+
+    // ✅ Queue used to buffer appointment save requests
     private final BlockingQueue<AppointmentSaveRequest> queue = new LinkedBlockingQueue<>();
     private volatile boolean running = true;
 
+    // ✅ Enqueue appointment to be saved asynchronously
     public void saveLater(Appointment appointment, String patientName, String doctorName) {
         queue.offer(new AppointmentSaveRequest(appointment, patientName, doctorName));
     }
 
-    public void stop() {
+    // ✅ Triggers shutdown by enqueueing poison pill
+    public void flushAndStop() {
         running = false;
+        queue.offer(POISON_PILL);
     }
 
     @Override
     public void run() {
         System.out.println("🟢 Appointment saver started...");
-        while (running || !queue.isEmpty()) {
+        while (true) {
             try {
                 AppointmentSaveRequest request = queue.take();
+
+                if (request == POISON_PILL) {
+                    break; // ✅ Exit loop on poison pill
+                }
+
                 Appointment a = request.appointment();
 
                 try (Connection conn = DatabaseManager.getConnection();
@@ -41,8 +54,8 @@ public class AppointmentSaverWorker implements Runnable {
                     stmt.setString(4, a.getDate());
                     stmt.setString(5, a.getTime());
 
-                    stmt.executeUpdate();
-                    System.out.println("💾 Saved to SQLite: " + a.getConfirmationCode());
+                    stmt.executeUpdate(); // ✅ Save appointment to SQLite DB
+                    System.out.println("\n💾 Saved to SQLite: " + a.getConfirmationCode());
 
                 } catch (SQLException e) {
                     System.err.println("❌ DB save error: " + e.getMessage());
@@ -56,6 +69,7 @@ public class AppointmentSaverWorker implements Runnable {
         System.out.println("🛑 Appointment saver stopped.");
     }
 
+    // ✅ Record to hold appointment + metadata
     public record AppointmentSaveRequest(Appointment appointment, String patientName, String doctorName) {
     }
 }

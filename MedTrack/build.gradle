@@ -12,10 +12,15 @@ repositories {
 
 dependencies {
     implementation 'org.xerial:sqlite-jdbc:3.45.1.0'
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
-    implementation 'org.slf4j:slf4j-simple:2.0.9'
+
+    testImplementation 'org.junit.platform:junit-platform-launcher:1.10.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-engine:1.10.0' // ✅ add this line
 }
+
 
 application {
     mainClass = 'app.Main'
@@ -29,4 +34,15 @@ test {
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['src/main/java']
+    }
+    test {
+        java.srcDirs = ['src/test']
+        compileClasspath += main.output
+        runtimeClasspath += main.output
+    }
 }

@@ -1,13 +1,5 @@
 package app;
 
-/**
- * ✅ CS622 Release – New File
- * This demo simulates 10 patients attempting to book the same appointment slot concurrently.
- * It showcases the real-world effect of the ReentrantLock added in AppointmentManager
- * by printing which patients succeeded and which failed. This complements the test class
- * by offering visual proof of thread-safe booking behavior in action.
- */
-
 import model.Doctor;
 import model.Patient;
 import service.AppointmentManager;

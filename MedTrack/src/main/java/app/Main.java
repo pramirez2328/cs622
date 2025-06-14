@@ -14,21 +14,25 @@ import java.util.stream.Stream;
 
 public class Main {
     public static void main(String[] args) {
-        DatabaseInitializer.initialize();
+        // ✅ NEW: Ask user if they want to reset the database on startup
+        System.out.print("🗃️  Reinitialize the database from scratch? (yes/no): ");
+        String initAnswer = new Scanner(System.in).nextLine().trim().toLowerCase();
+        if (initAnswer.equals("yes")) {
+            DatabaseInitializer.initialize(); // Recreate tables and clear data
+        }
 
         FacadeService facade = FacadeService.getInstance();
         Scanner scanner = new Scanner(System.in);
 
-        // ✅ Load users from SQLite instead of file
+        // ✅ NEW: Load users directly from SQLite database (instead of CSV or .ser)
         facade.loadUsersFromDatabase();
 
-
-        // ✅ CS622 Part 2.3 – Start autosave service on boot
+        // ✅ NEW: Start background autosave service to periodically write patients to .ser
         RegistryAutosaveService autosaveService = new RegistryAutosaveService(facade.getUserRegistry(), 40); // every 40 seconds
         autosaveService.start();
         System.out.println("💡 Autosave is enabled. Your data will be saved automatically in the background.");
 
-        // ✅ CS622 Part 2.3 – Ensure autosave stops on app exit
+        // ✅ NEW: Attach shutdown hook to stop autosave thread gracefully when app exits
         Runtime.getRuntime().addShutdownHook(new Thread(autosaveService::stop));
 
         boolean running = true;
@@ -44,6 +48,7 @@ public class Main {
 
             switch (choice) {
                 case "0":
+                    // ✅ NEW: Clear and reload patients/doctors/appointments from CSV and TXT
                     System.out.println("⚠️ This will reload patients and doctors from CSV files.");
                     System.out.print("Are you sure? (yes/no): ");
                     String confirm = scanner.nextLine().trim().toLowerCase();
@@ -51,24 +56,25 @@ public class Main {
                         DatabaseInitializer.seedFromCsvForce();
                         DatabaseInitializer.seedAppointmentsFromTxt("data/appointments.txt");
                         System.out.println("📦 Database reseeded from CSV files (force mode).");
-
                     } else {
                         System.out.println("❌ Operation cancelled.");
                     }
                     break;
 
                 case "1":
+                    // ✅ MODIFIED: Register patient and persist to DB immediately
                     System.out.print("Enter your name: ");
                     String name = scanner.nextLine().trim();
                     System.out.print("Enter your insurance provider: ");
                     String insurance = scanner.nextLine().trim();
                     String newId = String.format("P%04d", System.currentTimeMillis() % 10000);
                     Patient newPatient = new Patient(newId, name, insurance);
-                    facade.registerUser(newPatient);
+                    facade.registerUser(newPatient); // handles DB save + memory
                     System.out.println("✅ Registered successfully! Your patient ID: " + newId);
                     break;
 
                 case "2":
+                    // Booking logic (unchanged, but now saves appointment via background queue)
                     System.out.print("Enter your patient ID: ");
                     String pid = scanner.nextLine().trim();
                     User foundUser = facade.findUserById(pid);
@@ -107,6 +113,7 @@ public class Main {
                     break;
 
                 case "3":
+                    // View appointments, with filtering for "upcoming"
                     System.out.print("Enter your patient ID: ");
                     String viewId = scanner.nextLine().trim();
                     User viewUser = facade.findUserById(viewId);
@@ -118,7 +125,7 @@ public class Main {
                     }
 
                     Patient viewPatient = (Patient) viewUser;
-                    facade.loadAppointmentsForPatient(viewPatient);
+                    facade.loadAppointmentsForPatient(viewPatient); // load from DB
                     List<Appointment> appointments = viewPatient.getAppointments();
 
                     if (appointments.isEmpty()) {
@@ -161,9 +168,12 @@ public class Main {
                     break;
 
                 case "4":
-                    System.out.println("💾 Final autosave and shutdown in progress...");
-                    System.out.println("👋 Exiting MEDTRACK. Goodbye!");
-                    System.exit(0);
+                    // ✅ MODIFIED: Shutdown services cleanly (appointment saver + autosave)
+                    System.out.println("\n💾 Final autosave and shutdown in progress...");
+                    facade.shutdown(); // flush pending appointments
+                    autosaveService.stop(); // stop autosave thread
+                    System.out.println("👋 Exiting MEDTRACK. Goodbye.");
+                    running = false; // exit loop cleanly (replaces System.exit)
                     break;
 
                 default:
