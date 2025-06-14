@@ -53,8 +53,7 @@ public class Main {
                     System.out.print("Are you sure? (yes/no): ");
                     String confirm = scanner.nextLine().trim().toLowerCase();
                     if (confirm.equals("yes")) {
-                        DatabaseInitializer.seedFromCsvForce();
-                        DatabaseInitializer.seedAppointmentsFromTxt("data/appointments.txt");
+                        DatabaseInitializer.initialize();
                         System.out.println("📦 Database reseeded from CSV files (force mode).");
                     } else {
                         System.out.println("❌ Operation cancelled.");
