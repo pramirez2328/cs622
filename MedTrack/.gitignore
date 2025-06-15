@@ -30,3 +30,7 @@ bin/
 
 # Ignore serialized data files
 data/*.ser
+.gradle/
+.idea/
+build/
+data/medtrack.db

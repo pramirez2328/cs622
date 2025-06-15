@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="dataSourceStorageLocal" created-in="IU-251.26094.121">
-    <data-source name="medtrack" uuid="6d0b4b16-c975-454d-b24c-b03179f3e71c">
-      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="SQLITE" />
-      <schema-mapping />
-    </data-source>
-  </component>
-</project>

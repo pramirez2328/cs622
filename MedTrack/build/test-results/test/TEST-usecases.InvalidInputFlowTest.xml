@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="usecases.InvalidInputFlowTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2025-06-15T15:56:56.289Z" hostname="Pedros-MacBook-Pro.local" time="0.003">
-  <properties/>
-  <testcase name="testMalformedTimeThrowsException()" classname="usecases.InvalidInputFlowTest" time="0.001"/>
-  <testcase name="testMalformedDateThrowsException()" classname="usecases.InvalidInputFlowTest" time="0.001"/>
-  <testcase name="testNullPatientThrowsException()" classname="usecases.InvalidInputFlowTest" time="0.001"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

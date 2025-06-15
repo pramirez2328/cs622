@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="usecases.DoctorAvailabilityTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-06-15T15:56:56.280Z" hostname="Pedros-MacBook-Pro.local" time="0.002">
-  <properties/>
-  <testcase name="testDoctorAvailabilityChangesAfterBooking()" classname="usecases.DoctorAvailabilityTest" time="0.002"/>
-  <system-out><![CDATA[]]>&#x1f7e2;<![CDATA[ Appointment saver started...
-]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

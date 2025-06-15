@@ -19,69 +19,106 @@ It is designed with maintainability in mind, leveraging design patterns like **F
 
 ---
 
-## 🚀 RUNNING THE APPLICATION
+## 🚀 HOW TO RUN THE APPLICATION
 
-The CLI requires interactive input via `Scanner`, so there are two supported ways to run the app.
+The CLI application requires **interactive input via `Scanner`**, so **do not use Gradle’s `run` task**.
 
-### 🔹 Option 1: Run from IntelliJ (Recommended)
+### ✅ Recommended: Run from IntelliJ IDEA
 
 1. Open the project in **IntelliJ IDEA**
-2. Navigate to: `src/main/java/app/Main.java`
-3. Right-click on the `Main` class → **Run 'Main'**
+2. Ensure your JDK is set to **Java 17 or later** (Java 23 used during development)
+3. Open the file:
 
-✅ This is the **preferred way** to run the app interactively.
+```
+
+src/main/java/app/Main.java
+
+```
+
+4. Right-click the `Main` class → **Run 'Main'**
+
+### 🧭 On First Launch
+
+You will be prompted:
+
+```
+
+Reinitialize the database from scratch? (yes/no):
+
+```
+
+- Enter `yes` to drop and recreate the SQLite schema
+    - Seeds patients from `data/patients.csv`
+    - Seeds doctors from `data/doctors.csv`
+    - Imports appointments from `data/appointments.txt`
+- Enter `no` to load the current database state from `data/medtrack.db`
+
+After startup, you’ll see the menu:
+
+```
+
+0. Clean db and reload from CSV files
+1. Register as new patient
+2. Book an appointment
+3. View my appointments
+4. Exit
+
+````
 
 ---
 
-### 🔹 Option 2: Run via terminal (outside Gradle)
+### ❌ Not Supported: `./gradlew run`
 
-Gradle's `run` task does **not** support interactive input. Instead, do this:
-
-1. **Build the project**:
-   ```bash
-   ./gradlew build
-
-2. **Run using the Java CLI**:
-
-   ```bash
-   java -cp build/classes/java/main:build/resources/main app.Main
-   ```
-
-   > On Windows, use `;` instead of `:` in the classpath:
-
-   ```cmd
-   java -cp build\classes\java\main;build\resources\main app.Main
-   ```
-
-⚠️ Avoid running with:
+Due to `Scanner.nextLine()` being incompatible with Gradle’s non-interactive run environment, avoid:
 
 ```bash
 ./gradlew run
+````
+
+Instead, use the IntelliJ run button or the terminal instructions below.
+
+---
+
+### 🔹 Alternative: Run from Terminal (if needed)
+
+#### 1. Build the project:
+
+```bash
+./gradlew build
 ```
 
-It will fail with a `NoSuchElementException` due to `Scanner.nextLine()` not being supported by Gradle's run
-environment.
+#### 2. Run with Java CLI:
+
+```bash
+java -cp build/classes/java/main:build/resources/main app.Main
+```
+
+> On Windows, replace `:` with `;`:
+
+```cmd
+java -cp build\classes\java\main;build\resources\main app.Main
+```
 
 ---
 
 ## 🧪 RUNNING TESTS
 
-Tests are written using **JUnit 5** and cover core features including concurrency, persistence, and error handling.
+Tests are written using **JUnit 5** and cover concurrency, DB persistence, and functional flows.
 
-1. Open `src/test/java/` in IntelliJ
-2. Right-click any test class (e.g., `AppointmentManagerTest`) → **Run**
-3. Or run all tests with:
+1. Navigate to `src/test/java/` in IntelliJ
+2. Right-click any test (e.g., `AppointmentManagerTest`) → **Run**
+3. Or use:
 
-   ```bash
-   ./gradlew test
-   ```
+```bash
+./gradlew test
+```
 
-Tests include:
+✅ Tests include:
 
-* ✅ Patient/Doctor registration and lookup
-* ✅ Appointment creation and conflict checks
-* ✅ Autosave and concurrent booking validations
-* ✅ Database persistence and recovery
+* Patient/Doctor registration and lookup
+* Appointment creation and conflict checks
+* Autosave and concurrent booking validations
+* Database seeding and persistence checks
 
 ---
 
@@ -97,13 +134,13 @@ src/
 
 ├── test/
 │   └── java/
-│       ├── model/       → Unit tests for individual components
-│       └── usecases/    → Integration and flow tests
+│       ├── model/       → Unit tests for components
+│       └── usecases/    → Integration and workflow tests
 
 data/
-├── patients.csv         → Initial patient data (CSV format)
-├── doctors.csv          → Initial doctor data (CSV format)
-├── appointments.txt     → Legacy data file (used for seeding)
+├── patients.csv         → Patient data (used for seeding)
+├── doctors.csv          → Doctor data (used for seeding)
+├── appointments.txt     → Legacy appointment entries
 ├── medtrack.db          → Persistent SQLite database
 ```
 
@@ -111,25 +148,27 @@ data/
 
 ## 🔧 FEATURES
 
-* ✅ SQLite persistence (no need for external DB)
-* ✅ Thread-safe booking using `ReentrantLock`
-* ✅ Background queue for asynchronous appointment saving
+* ✅ SQLite persistence (self-contained, no external DB required)
+* ✅ Thread-safe booking via `ReentrantLock`
+* ✅ Background appointment saving with blocking queue
 * ✅ Autosave service for patient data every 40 seconds
-* ✅ CSV seeding on first run
-* ✅ Graceful error handling (invalid inputs, SQL failures)
-* ✅ Facade pattern for unified access to system operations
+* ✅ CSV and TXT file seeding on first run
+* ✅ Graceful shutdown and background thread handling
+* ✅ Facade design pattern for simplified access
+* ✅ Robust error and input validation
 
 ---
 
 ## 📌 NOTES
 
-* Patients and doctors are seeded from CSV only **once**
-* All appointment data is stored in **`data/medtrack.db`**
-* The autosave thread shuts down cleanly when the program exits
-* You can reset the DB by choosing "yes" when prompted at startup
-* Doctors are considered static; only patients can register dynamically
+* Appointments are saved in `data/medtrack.db`
+* CSV and TXT files are only used when resetting the database
+* You can reseed the system at any time using Option 0 in the CLI menu
+* Doctors are preloaded and fixed; only patients can register dynamically
+* The app exits cleanly and flushes any unsaved data before shutdown
 
 ---
 
 **Created by Pedro Ramirez – Summer 2025**
+
 
