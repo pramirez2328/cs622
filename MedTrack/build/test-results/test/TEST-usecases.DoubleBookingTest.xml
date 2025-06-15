@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="usecases.DoubleBookingTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-06-15T15:56:56.284Z" hostname="Pedros-MacBook-Pro.local" time="0.003">
+  <properties/>
+  <testcase name="testDoctorCannotBeDoubleBooked()" classname="usecases.DoubleBookingTest" time="0.003"/>
+  <system-out><![CDATA[
+]]>&#x1f4be;<![CDATA[ Saved to SQLite: APT-P4001-D4001-20251218-1100
+✅ Double booking correctly prevented: Doctor is already booked at 2025-12-15 09:00
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="model.AppointmentDatabaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-06-15T15:56:56.245Z" hostname="Pedros-MacBook-Pro.local" time="0.013">
+  <properties/>
+  <testcase name="testAppointmentDateAndTimeFormat()" classname="model.AppointmentDatabaseTest" time="0.01"/>
+  <testcase name="testDatabaseHasAppointments()" classname="model.AppointmentDatabaseTest" time="0.001"/>
+  <system-out><![CDATA[✅ Tables ensured.
+✅ Patients seeded from CSV.
+✅ Doctors seeded from CSV.
+✅ Appointments seeded from TXT.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
